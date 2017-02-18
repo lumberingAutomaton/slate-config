@@ -1,181 +1,204 @@
 // slate js configuration
 
-(function(){
+(function () {
     'use strict';
-    var offset = 6;
-    var screen = slate.screen();
-    var view = screen.visibleRect();
-
+    var screen, view, positions, sizes;
     var directions = {
-        left : 0,
+        left: 0,
         right: 1,
         up: 0,
         down: 1
     };
 
-    var horizontal = [
-        view.x,
-        view.x / 4,
-        view.x / 2
-    ];
+    var update = function () {
+        screen = slate.screen();
+        view = screen.rect();
+        //view = screen.visibleRect();
+        positions = {
+            horizontal: {
+                left: view.x,
+                center: view.width / 4,
+                right: view.width / 2
+            },
+            vertical: {
+                top: view.y,
+                bottom: view.height / 2 + 12
+            }
+        };
 
-    var vertical = [
-        view.y,
-        view.y / 2
-    ];
-
-    var roughly = function(num, denom){
-        var proportion = num / denom;
-        return (proportion < 1.1) && proportion > 0.9;
+        sizes = {
+            width: {
+                half: view.width / 2,
+                full: view.width
+            },
+            height: {
+                half: view.height / 2 - 12,
+                full: view.height
+            }
+        };
     };
 
-    var toFull = function(win){
+    var roughly = function (over, under) {
+        var proportion = over / under;
+        return (proportion < 1.05) && proportion > 0.95;
+    };
+
+    var toFull = function (win) {
         win.resize({
-            width : view.width,
-            height : view.height
+            width: sizes.width.full,
+            height: sizes.height.full
         });
     };
 
-    var isFull = function(rect){
-        return roughly(rect.width, view.width);
+    var isFull = function (rect) {
+        return roughly(rect.width, sizes.width.full);
     };
 
-    var toHalf = function(win){
+    var toHalf = function (win) {
         win.resize({
-            width : view.width / 2 - offset / 2,
-            height : view.height
+            width: sizes.width.half,
+            height: sizes.height.full
         });
     };
 
-    var isHalf = function(rect){
-        return roughly(rect.width, view.width / 2 - offset / 2) && roughly(rect.height, view.height); 
+    var isHalf = function (rect) {
+        return roughly(rect.width, sizes.width.half) &&
+            roughly(rect.height, sizes.height.full);
     };
 
-    var toQuarter = function(win){
+    var toQuarter = function (win) {
         win.resize({
-            width : view.width / 2 - offset /2,
-            height : view.height / 2
+            width: sizes.width.half,
+            height: sizes.height.half
         });
     };
 
-    var isQuarter = function(rect){
-        return roughly(rect.width, view.width / 2 - offset / 2) && roughly(rect.height, view.height / 2);  
+    var isQuarter = function (rect) {
+        return (isTop(rect) || isBottom(rect)) && roughly(rect.width, sizes.width.half) &&
+            roughly(rect.height, sizes.height.half);
     };
 
-    var toRight = function(win){
+    var toRight = function (win) {
         var rect = win.rect();
-        var breakpoint = rect.x + view.width / 4;
-        if (breakpoint > view.width /2 + offset){
-            breakpoint = view.x;
+        var breakpoint = rect.x + positions.horizontal.center;
+        if (roughly(breakpoint, positions.horizontal.right + positions.horizontal.center)) {
+            breakpoint = positions.horizontal.left;
         }
         win.move({
-            x : breakpoint,
-            y : win.rect().y
+            x: breakpoint,
+            y: rect.y
         });
     };
 
-    var isRight = function(rect){
-        return roughly(rect.x, view.width / 2 + offset / 2);
+    var isRight = function (rect) {
+        return roughly(rect.x, positions.horizontal.right);
     };
 
-    var toLeft = function(win){
+    var toLeft = function (win) {
         var rect = win.rect();
-        var breakpoint = rect.x - view.width / 4;
-        if (breakpoint < view.x - offset){
-            breakpoint = view.width / 2 + offset / 2;
+        var breakpoint = rect.x - positions.horizontal.center;
+        if (breakpoint < positions.horizontal.left) {
+            breakpoint = positions.horizontal.right;
         }
         win.move({
-            x : breakpoint,
-            y : win.rect().y
+            x: breakpoint,
+            y: rect.y
         });
     };
 
-    var isLeft = function(rect){
-        return (rect.x ===  view.x);
+    var isLeft = function (rect) {
+        return Math.abs(rect.x - positions.horizontal.left) < 24;
     };
 
-    var toTop = function(win){
+    var toTop = function (win) {
         win.move({
-            x : win.rect().x,
-            y : view.y
+            x: win.rect().x,
+            y: positions.vertical.top
         });
     };
 
-    var isTop = function(rect){
-        return (rect.y === view.y);
+    var isTop = function (rect) {
+        return (rect.y < positions.vertical.bottom);
     };
 
-    var toBottom = function(win){
+    var toBottom = function (win) {
         win.move({
-            x : win.rect().x,
-            y : view.height / 2
+            x: win.rect().x,
+            y: positions.vertical.bottom
         });
     };
 
-    var isBottom = function(rect){
-        return roughly(rect.y, view.height / 2);
+    var isBottom = function (rect) {
+        return roughly(rect.y, positions.vertical.bottom);
     };
 
-    var toMiddle = function(win){
+    var toMiddle = function (win) {
         win.move({
-            x : view.width / 4,
-            y : win.rect().y
+            x: positions.horizontal.center,
+            y: win.rect().y
         });
     };
 
-    var isMiddle = function(rect){
+    var isMiddle = function (rect) {
         return !isRight(rect) && !isLeft(rect);
     };
 
-    var horizontalPush = function(direction){
-        return function(win){
+    var horizontalPush = function (direction) {
+        return function (win) {
             view = screen.visibleRect();
             var rect = win.rect();
-            if(isFull(rect)){
+            if (isFull(rect)) {
                 toHalf(win);
                 direction && toLeft(win);
                 return;
             }
-            if (isQuarter(rect)){
-                if(isRight(rect)){
+            if (isQuarter(rect)) {
+                if (isRight(rect)) {
                     toRight(win);
                 } else {
                     toLeft(win);
                 }
                 return;
             }
+            toTop(win);
             toHalf(win);
             direction ? toRight(win) : toLeft(win);
         };
     };
 
-    var verticalPush = function(direction){
-        return function(win){
+    var verticalPush = function (direction) {
+        return function (win) {
             view = screen.visibleRect();
             var rect = win.rect();
-            if(direction){ // going down
-                if(isQuarter(rect) && isTop(rect)){
+            if (direction) { // going down
+                if (isQuarter(rect) && isTop(rect)) {
                     toBottom(win);
                     return;
                 }
-                if (isHalf(rect) && !isMiddle(rect)){
+                if (isHalf(rect) && !isMiddle(rect)) {
                     toQuarter(win);
                     toBottom(win);
                     return;
                 }
-                if (isFull(rect)){
+                if (isFull(rect)) {
                     toMiddle(win);
                     toHalf(win);
                     return;
                 }
             } else { // going up
-                if (isHalf(rect)){
-                    toTop(win);
+                if (isHalf(rect)) {
+                    if (isRight(rect)) {
+                        toRight(win);
+                    } else if (isLeft(rect)) {
+                        // aww yeah
+                    } else {
+                        toLeft(win);
+                    }
                     toFull(win);
                     return;
                 }
-                if(isQuarter(rect)){
-                    if(isBottom(rect)){
+                if (isQuarter(rect)) {
+                    if (isBottom(rect)) {
                         toTop(win);
                         return;
                     } else {
@@ -186,6 +209,8 @@
             }
         };
     };
+
+    update();
 
     slate.bind("left:ctrl;cmd", horizontalPush(directions.left));
 
