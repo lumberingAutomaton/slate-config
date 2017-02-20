@@ -3,7 +3,9 @@
 (function () {
     'use strict';
 
-    var directions = {
+    var similarityFactor = 0.9;
+
+    var direction = {
         left: 0,
         right: 1,
         up: 0,
@@ -136,7 +138,7 @@
                 var overlapArea = overlap.area();
                 var rectCoverage = overlapArea / rect.area();
                 var winCoverage = overlapArea / win.area();
-                var coverage = rectCoverage + winCoverage;
+                var coverage = rectCoverage + winCoverage;     
                 //slate.log(name, coverage);
                 if (coverage > cursor.coverage){
                     cursor.name = name;
@@ -149,13 +151,26 @@
         return cursor;
     };
 
+    var getCurrentPos = function(w){
+        var screen = slate.screen();
+        var view = screen.rect();
+        var win = getRectFromSlateObj(w.rect());
+        var pos = getNearestMatchingRect(win, view);
+        // if the overlap is similar enough to the position, the window is in that position.
+        if (pos.rect.area() * similarityFactor > pos.overlap.area()){
+            return null;
+        }
+        return pos;
+    };
+
     var horizontalPush = function (direction) {
         return function (w) {
-            var screen = slate.screen();
-            var view = screen.rect();
-            var win = getRectFromSlateObj(w.rect());
-            var p = getNearestMatchingRect(win, view);
-            slate.log('nearest match: ' + p.name);
+            var pos = getCurrentPos(w);
+            if (pos){
+                slate.log('nearest match accepted > ' + pos.name);
+            } else {
+                slate.log('nearest match discarded');
+            }
             // if quarter screen, switch to other quarter
             // if half screen, switch to other half
             // else go to indicated half
@@ -164,6 +179,12 @@
 
     var verticalPush = function (direction) {
         return function (win) {
+            var pos = getCurrentPos(w);
+            if (pos){
+                slate.log('nearest match accepted > ' + pos.name);
+            } else {
+                slate.log('nearest match discarded');
+            }
             //up
             // if bottom quarter go to top quarter
             // if top quarter go to half
@@ -173,12 +194,12 @@
         };
     };
 
-    slate.bind("left:ctrl;cmd", horizontalPush(directions.left));
+    slate.bind("left:ctrl;cmd", horizontalPush(direction.left));
 
-    slate.bind("right:ctrl;cmd", horizontalPush(directions.right));
+    slate.bind("right:ctrl;cmd", horizontalPush(direction.right));
 
-    slate.bind("up:ctrl;cmd", verticalPush(directions.up));
+    slate.bind("up:ctrl;cmd", verticalPush(direction.up));
 
-    slate.bind("down:ctrl;cmd", verticalPush(directions.down));
+    slate.bind("down:ctrl;cmd", verticalPush(direction.down));
 
 })();
