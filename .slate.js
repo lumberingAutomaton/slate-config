@@ -3,7 +3,7 @@
 (function () {
     'use strict';
     var cache = {};
-    var similarityFactor = 0.90;
+    var similarityFactor = 0.85;
     var direction = { left: 'left', right: 'right', up: 'up', down: 'down' };
     var positions = {
         rt : {
@@ -39,7 +39,7 @@
         lh : {
             left : 'rh',
             right: 'rh',
-            up: 'lh',
+            up: 'fs',
             down: 'lb'
         },
         fs : {
@@ -86,6 +86,11 @@
         this.tl = tl;
         this.br = br;
     };
+
+    Rect.prototype.toString = function(){
+        return "tl:(" + this.tl.x + ", " + this.tl.y + "), " +
+            "br:(" + this.br.x + ", " + this.br.y + ")";
+    };  
 
     Rect.prototype.area = function () {
         var w = this.br.x - this.tl.x;
@@ -153,10 +158,10 @@
             ),
             fs : getRectFromSlateObj(view),
             na : getXYWHRect(
-                view.width / 5,
-                view.height / 5,
-                (view.width / 5) * 3,
-                (view.height / 5) * 3
+                view.width / 9,
+                view.height / 9,
+                (view.width / 9) * 7,
+                (view.height / 9) * 7
             )
         };
     };
@@ -225,9 +230,29 @@
         // if the overlap is similar enough to the position, the window is in that position.
         if (match.rect.area() * similarityFactor > match.overlap.area()){
             match.name = 'na';
-            match.rect = rects.na;
         }
-        return match;
+        // slate.log("match: " + match.name + " > " + match.rect.toString());
+        return match.name;
+    };
+
+    var getNextRect = function(win, rects, direction){
+        var pos = getCurrentPos(win, rects);
+        // slate.log('pos: ' + pos);
+        var next = positions[pos][direction];
+        // slate.log('next: ' + next);
+        return rects[next];
+    }
+
+    var translate = function(win, rect){
+        // slate.log(rect.toString());
+        win.move({
+            x : rect.tl.x,
+            y : rect.tl.y,
+        });
+        win.resize({
+            width: rect.br.x - rect.tl.x,
+            height: rect.br.y - rect.tl.y
+        });
     };
 
     var keypress = function (direction) {
@@ -235,11 +260,8 @@
             var screen = slate.screen();
             var view = screen.rect();
             var rects = getPositionRects(view);
-            var pos = getCurrentPos(win, rects);
-            var next = positions[pos.name][direction];
-            slate.log(direction + ': ' + pos.name + '>' + next);
-            move(win, rects[next]);
-            
+            var next = getNextRect(win, rects, direction);
+            translate(win, next);
         };
     };
 
