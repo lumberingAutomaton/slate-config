@@ -2,7 +2,12 @@
 /* globals slate */
 (function () {
     'use strict';
+
+    /**
+     * globals
+     */
     var cache = {};
+    var debugging = false;
     var similarityFactor = 0.85;
     var direction = { left: 'left', right: 'right', up: 'up', down: 'down' };
     var positions = {
@@ -56,9 +61,8 @@
         }
     };
 
-
     /**
-     * Class Point
+     * Classes
      */
     var Point = function (x, y) {
         this.x = x;
@@ -79,13 +83,15 @@
         );
     };
 
-    /**
-     * Class Rect
-     */
     var Rect = function (tl, br) {
         this.tl = tl;
         this.br = br;
     };
+
+    Rect.empty = new Rect(
+        new Point(0, 0),
+        new Point(0, 0)   
+    );
 
     Rect.prototype.toString = function(){
         return "tl:(" + this.tl.x + ", " + this.tl.y + "), " +
@@ -101,8 +107,9 @@
     Rect.prototype.overlap = function (subject) {
         var tl = Point.max(this.tl, subject.tl);
         var br = Point.min(this.br, subject.br);
+        // ensure that that there is overlap
         if (tl.x > br.x || tl.y > br.y){
-            return null;
+            return Rect.empty;
         }
         return new Rect(tl, br);
     };
@@ -110,6 +117,12 @@
     /**
      * helper functions
      */
+    var log = function(msg){
+        if (debugging){
+            slate.log(msg);
+        }
+    };
+
     var getPositionRects = function(view){
         var key = view.width + 'x' + view.height;
         if (!cache[key]){
@@ -171,27 +184,13 @@
      * with width and height.
      */
     var getXYWHRect = function (x, y, w, h) {
-        // slate.log( 'getXYWHRect', x, y, w, h);
         return new Rect(
             new Point(x, y),
             new Point( x + w, y + h)
         );
     };
 
-    /**
-     * gets a rect object from top left x, y coord
-     * and bottom right x, y coord.
-     */
-    var getTLBRRect = function (x1, y1, x2, y2){
-        // slate.log( 'getTLBRRect', x1, y1, x2, y2);
-        return new Rect(
-            new Point(x1, y1),
-            new Point(x2, y2)
-        );
-    };
-
     var getRectFromSlateObj = function(slob){
-        // slate.log( 'getRectFromSlateObj');
         return getXYWHRect(
             slob.x,
             slob.y,
@@ -200,28 +199,39 @@
         );
     };
 
+    var getComparisonRect = function(name, rects, win){
+        var overlap = Rect.empty,
+            coverage = -1,
+            rect = rects[name];
+        if (rect){
+            overlap = win.overlap(rect);
+            var overlapArea = overlap.area();
+            // how much of the position is covered by win?
+            var rectCoverage = overlapArea / rect.area();
+            // how much of the win is over the position?
+            var winCoverage = overlapArea / win.area();
+            coverage = rectCoverage + winCoverage;
+        }
+        return {
+            name : name,
+            rect : rect,
+            coverage : coverage,
+            overlap : overlap
+        };
+    };
+
     var getNearestMatchingRect = function(win, rects){
-        var cursor = { name : null, rect: null, coverage : -1 };
-        for (var name in rects){
-            var rect = rects[name];
-            var overlap = win.overlap(rect);
-            if (overlap){
-                var overlapArea = overlap.area();
-                // how much of the position is covered by win?
-                var rectCoverage = overlapArea / rect.area();
-                // how much of the win is over the position?
-                var winCoverage = overlapArea / win.area();
-                var coverage = rectCoverage + winCoverage;     
-                // slate.log(name, coverage);
-                if (coverage > cursor.coverage){
-                    cursor.name = name;
-                    cursor.rect = rect;
-                    cursor.coverage = coverage;
-                    cursor.overlap = overlap;
+        var match = getComparisonRect('match', rects, win);
+            for (var name in rects){
+                if (Object.prototype.hasOwnProperty.call(rects, name)){
+                    var cursor = getComparisonRect(name, rects, win);   
+                    if (cursor.coverage > match.coverage){
+                        match = cursor;
+                    }
                 }
             }
-        }
-        return cursor;
+        log("nearest match: " + match.name + " > " + match.rect.toString());
+        return match;
     };
 
     var getCurrentPos = function(win, rects){
@@ -231,20 +241,18 @@
         if (match.rect.area() * similarityFactor > match.overlap.area()){
             match.name = 'na';
         }
-        // slate.log("match: " + match.name + " > " + match.rect.toString());
+        log("selected match: " + match.name + " > " + match.rect.toString());
         return match.name;
     };
 
     var getNextRect = function(win, rects, direction){
         var pos = getCurrentPos(win, rects);
-        // slate.log('pos: ' + pos);
         var next = positions[pos][direction];
-        // slate.log('next: ' + next);
+        log(direction + ": " + pos + " > " + next);
         return rects[next];
-    }
+    };
 
-    var translate = function(win, rect){
-        // slate.log(rect.toString());
+    var translateTo = function(win, rect){
         win.move({
             x : rect.tl.x,
             y : rect.tl.y,
@@ -261,16 +269,15 @@
             var view = screen.rect();
             var rects = getPositionRects(view);
             var next = getNextRect(win, rects, direction);
-            translate(win, next);
+            translateTo(win, next);
         };
     };
 
-    slate.bind("left:ctrl;cmd", keypress(direction.left));
-
-    slate.bind("right:ctrl;cmd", keypress(direction.right));
-
-    slate.bind("up:ctrl;cmd", keypress(direction.up));
-
-    slate.bind("down:ctrl;cmd", keypress(direction.down));
+    slate.bindAll({
+        "left:ctrl;cmd" : keypress(direction.left),
+        "right:ctrl;cmd" : keypress(direction.right),
+        "up:ctrl;cmd" : keypress(direction.up),
+        "down:ctrl;cmd" : keypress(direction.down)
+    });
 
 })();
