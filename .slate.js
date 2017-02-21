@@ -9,6 +9,8 @@
     var cache = {};
     var debugging = false;
     var similarityFactor = 0.85;
+    var menubarHeight = 12;
+    var naAspect = 9;
     var direction = { left: 'left', right: 'right', up: 'up', down: 'down' };
     var positions = {
         rt : {
@@ -137,25 +139,25 @@
                 view.width / 2,
                 view.y,
                 view.width / 2,
-                view.height / 2 - 12 // 12 px smaller to account for menu bar
+                view.height / 2 - menubarHeight
             ),
             rb: getXYWHRect(
                 view.width / 2,
-                view.height / 2 + 12, // 12 px lower to account for menu bar
+                view.height / 2 + menubarHeight,
                 view.width / 2,
-                view.height / 2 - 12 // 12 px smaller to account for menu bar
+                view.height / 2 - menubarHeight
             ),
             lb: getXYWHRect(
                 view.x,
-                view.height / 2 + 12, // 12 px lower to account for menu bar
+                view.height / 2 + menubarHeight,
                 view.width / 2,
-                view.height / 2 - 12 // 12 px smaller to account for menu bar
+                view.height / 2 - menubarHeight
             ),
             lt: getXYWHRect(
                 view.x,
                 view.y,
                 view.width / 2,
-                view.height / 2 - 12 // 12 px smaller to account for menu bar
+                view.height / 2 - menubarHeight
             ),
             rh: getXYWHRect(
                 view.width / 2,
@@ -171,10 +173,10 @@
             ),
             fs : getRectFromSlateObj(view),
             na : getXYWHRect(
-                view.width / 9,
-                view.height / 9,
-                (view.width / 9) * 7,
-                (view.height / 9) * 7
+                view.width / naAspect,
+                view.height / naAspect,
+                (view.width / naAspect) * (naAspect - 2),
+                (view.height / naAspect) * (naAspect - 2)
             )
         };
     };
