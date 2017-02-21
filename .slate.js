@@ -10,7 +10,7 @@
     var debugging = false;
     var similarityFactor = 0.85;
     var menubarHeight = 12;
-    var naAspect = 9;
+    var gridSize = 9;
     var direction = { left: 'left', right: 'right', up: 'up', down: 'down' };
     var positions = {
         rt : {
@@ -173,10 +173,10 @@
             ),
             fs : getRectFromSlateObj(view),
             na : getXYWHRect(
-                view.width / naAspect,
-                view.height / naAspect,
-                (view.width / naAspect) * (naAspect - 2),
-                (view.height / naAspect) * (naAspect - 2)
+                view.width / gridSize,
+                view.height / gridSize,
+                (view.width / gridSize) * (gridSize - 2),
+                (view.height / gridSize) * (gridSize - 2)
             )
         };
     };
