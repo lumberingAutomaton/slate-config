@@ -46,7 +46,7 @@ First pick up Slate:
 
 [Slate](https://github.com/mattr-/slate/blob/master/doc/installation.md)
 
-then add the .slate file to your home directory
+then add the .slate.js file to your home directory
 
 ## Acknowledgement
 
