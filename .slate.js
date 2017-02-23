@@ -125,15 +125,15 @@
         }
     };
 
-    var getPositionRects = function(view){
+    var getScreenRects = function(view){
         var key = view.width + 'x' + view.height;
         if (!cache[key]){
-            cache[key] = calculateRects(view);
+            cache[key] = precalculateScreenRects(view);
         }
         return cache[key];
     };
 
-    var calculateRects = function(view){
+    var precalculateScreenRects = function(view){
         return {
             rt: getXYWHRect(
                 view.width / 2,
@@ -201,7 +201,7 @@
         );
     };
 
-    var getComparisonRect = function(name, rects, win){
+    var getComparisonContext = function(name, rects, win){
         var overlap = Rect.empty,
             coverage = -1,
             rect = rects[name];
@@ -222,11 +222,11 @@
         };
     };
 
-    var getNearestMatchingRect = function(win, rects){
-        var match = getComparisonRect('match', rects, win);
+    var getMatchingScreenRect = function(win, rects){
+        var match = getComparisonContext('match', rects, win);
             for (var name in rects){
                 if (Object.prototype.hasOwnProperty.call(rects, name)){
-                    var cursor = getComparisonRect(name, rects, win);   
+                    var cursor = getComparisonContext(name, rects, win);   
                     if (cursor.coverage > match.coverage){
                         match = cursor;
                     }
@@ -236,9 +236,9 @@
         return match;
     };
 
-    var getCurrentPos = function(win, rects){
+    var getCurrentPosition = function(win, rects){
         var winRect = getRectFromSlateObj(win.rect());
-        var match = getNearestMatchingRect(winRect, rects);
+        var match = getMatchingScreenRect(winRect, rects);
         // if the overlap is similar enough to the position, the window is in that position.
         if (match.rect.area() * similarityFactor > match.overlap.area()){
             match.name = 'na';
@@ -247,11 +247,11 @@
         return match.name;
     };
 
-    var getNextRect = function(win, rects, direction){
-        var pos = getCurrentPos(win, rects);
-        var next = positions[pos][direction];
-        log(direction + ": " + pos + " > " + next);
-        return rects[next];
+    var getDestinationRect = function(win, rects, direction){
+        var position = getCurrentPosition(win, rects);
+        var destination = positions[position][direction];
+        log(direction + ": " + position + " > " + destination);
+        return rects[destination];
     };
 
     var translateTo = function(win, rect){
@@ -269,9 +269,9 @@
         return function (win) {
             var screen = slate.screen();
             var view = screen.rect();
-            var rects = getPositionRects(view);
-            var next = getNextRect(win, rects, direction);
-            translateTo(win, next);
+            var rects = getScreenRects(view);
+            var destination = getDestinationRect(win, rects, direction);
+            translateTo(win, destination);
         };
     };
 
