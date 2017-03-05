@@ -267,11 +267,13 @@
 
     var keypress = function (direction) {
         return function (win) {
-            var screen = slate.screen();
-            var view = screen.rect();
-            var rects = getScreenRects(view);
-            var destination = getDestinationRect(win, rects, direction);
-            translateTo(win, destination);
+            if (win.isMovable() && win.isResizable()){
+                var screen = slate.screen();
+                var view = screen.rect();
+                var rects = getScreenRects(view);
+                var destination = getDestinationRect(win, rects, direction);
+                translateTo(win, destination);
+            }
         };
     };
 
